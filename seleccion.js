@@ -13,20 +13,35 @@ import { Fantasma } from './piezas/Fantasma.js';
 import { ReyCaido } from './piezas/ReyCaido.js';
 
 const PIEZAS = {
-  peon: [PeonClasico, Bandido, GuardiaGigante],
-  rey: [Reina, ReyClasico, EmperadorInvocador],
-  defensa_cercana: [Caballo, Alfil, Bombardero],
-  defensa_lejana: [Torre, Fantasma, ReyCaido]
+  peon: [
+    { obj: PeonClasico, nombre: 'PEÓN CLÁSICO' },
+    { obj: Bandido, nombre: 'BANDIDO' },
+    { obj: GuardiaGigante, nombre: 'GUARDIA GIGANTE' }
+  ],
+  rey: [
+    { obj: Reina, nombre: 'REINA' },
+    { obj: ReyClasico, nombre: 'REY CLÁSICO' },
+    { obj: EmperadorInvocador, nombre: 'EMPERADOR' }
+  ],
+  defensa_cercana: [
+    { obj: Caballo, nombre: 'CABALLO' },
+    { obj: Alfil, nombre: 'ALFIL' },
+    { obj: Bombardero, nombre: 'BOMBARDERO' }
+  ],
+  defensa_lejana: [
+    { obj: Torre, nombre: 'TORRE' },
+    { obj: Fantasma, nombre: 'FANTASMA' },
+    { obj: ReyCaido, nombre: 'REY CAÍDO' }
+  ]
 };
 
-const NOMBRES = {
+const NOMBRES_CAT = {
   peon: 'PEONES',
   rey: 'REYES',
   defensa_cercana: 'DEFENSAS CERCANAS',
   defensa_lejana: 'DEFENSAS LEJANAS'
 };
 
-// Función auxiliar para mezclar array
 function shuffle(array) {
   return array.sort(() => Math.random() - 0.5);
 }
@@ -35,18 +50,17 @@ export function iniciarSeleccion(onComplete) {
   const overlay = document.createElement('div');
   overlay.id = 'overlay-seleccion';
   
-  // Estilos inyectados para no depender de otro CSS
   const style = document.createElement('style');
   style.textContent = `
     #overlay-seleccion {
       position: fixed; inset: 0; z-index: 100;
-      background: rgba(5, 7, 20, 0.95);
+      background: #050714; /* Fondo sólido para ocultar el tablero */
       display: flex; flex-direction: column;
       align-items: center; justify-content: center;
       font-family: monospace; color: #c9d1ff;
-      letter-spacing: 0.1em;
+      letter-spacing: 0.1em; overflow-y: auto; padding: 20px;
     }
-    .screen { display: none; text-align: center; }
+    .screen { display: none; text-align: center; width: 100%; }
     .screen.active { display: block; }
     h2 { font-size: 24px; color: #2fd4d4; text-shadow: 0 0 10px #2fd4d4; margin-bottom: 30px;}
     button {
@@ -60,32 +74,30 @@ export function iniciarSeleccion(onComplete) {
       background: transparent; border: 1px solid #2fd4d4; color: #f2c96b;
       padding: 8px; font-family: monospace; font-size: 16px; width: 100px; text-align: center;
     }
-    .draft-container { display: flex; flex-direction: column; gap: 20px; width: 80%; max-width: 800px; }
+    .draft-container { display: flex; flex-direction: column; gap: 15px; width: 100%; max-width: 800px; margin: 0 auto; }
     .categoria-row { background: rgba(255,255,255,0.05); padding: 15px; border: 1px solid rgba(47,212,212,0.3); }
     .categoria-titulo { font-size: 14px; color: #f2c96b; margin-bottom: 10px; text-align: left; }
-    .opciones { display: flex; justify-content: space-around; }
+    .opciones { display: flex; justify-content: space-around; gap: 10px; }
     .opcion {
-      width: 150px; height: 100px; border: 2px dashed #555; display: flex;
+      flex: 1; padding: 15px; border: 2px dashed #555; display: flex;
       align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s;
+      font-size: 12px; text-align: center;
     }
-    .opcion:hover { border-color: #2fd4d4; }
-    .opcion.elegida { border: 2px solid #2fd4d4; background: rgba(47,212,212,0.2); pointer-events: none; }
-    .opcion.cpu { border: 2px solid #e0409b; background: rgba(224,64,155,0.2); pointer-events: none; }
-    .opcion span { pointer-events: none; }
-    #btn-empezar { display: none; margin-top: 30px; color: #f2c96b; border-color: #f2c96b; }
+    .opcion:hover { border-color: #2fd4d4; background: rgba(47,212,212,0.1); }
+    .opcion.elegida { border: 2px solid #2fd4d4; background: rgba(47,212,212,0.3); pointer-events: none; color: #2fd4d4; }
+    .opcion.cpu { border: 2px solid #e0409b; background: rgba(224,64,155,0.2); pointer-events: none; color: #e0409b; }
+    #btn-empezar { display: none; margin-top: 30px; color: #f2c96b; border-color: #f2c96b; font-weight: bold; }
     #btn-empezar:hover { background: #f2c96b; color: #050714; box-shadow: 0 0 15px #f2c96b; }
   `;
   document.head.appendChild(style);
 
   overlay.innerHTML = `
-    <!-- Pantalla 1: Modo -->
     <div class="screen active" id="screen-modo">
       <h2>MINI-DREZ</h2>
       <button id="btn-local">JUGAR LOCAL</button>
       <button id="btn-cpu">JUGAR VS CPU</button>
     </div>
 
-    <!-- Pantalla 2: Dificultad -->
     <div class="screen" id="screen-dificultad">
       <h2>DIFICULTAD</h2>
       <button class="btn-dif" data-dif="facil">FÁCIL</button>
@@ -98,7 +110,6 @@ export function iniciarSeleccion(onComplete) {
       </div>
     </div>
 
-    <!-- Pantalla 3: Draft -->
     <div class="screen" id="screen-draft">
       <h2>SELECCIONA TUS PIEZAS</h2>
       <div class="draft-container" id="draft-container"></div>
@@ -107,7 +118,6 @@ export function iniciarSeleccion(onComplete) {
   `;
   document.body.appendChild(overlay);
 
-  // Elementos
   const screenModo = document.getElementById('screen-modo');
   const screenDif = document.getElementById('screen-dificultad');
   const screenDraft = document.getElementById('screen-draft');
@@ -120,7 +130,6 @@ export function iniciarSeleccion(onComplete) {
   let piezasCPU = {};
   let seleccionesHechas = 0;
 
-  // Flujo de pantallas
   document.getElementById('btn-local').onclick = () => {
     modo = 'local';
     iniciarDraft();
@@ -157,35 +166,29 @@ export function iniciarSeleccion(onComplete) {
     piezasJugador = {};
     piezasCPU = {};
 
-    // Generar opciones aleatorias para cada categoría
     Object.keys(PIEZAS).forEach(cat => {
-      // Elegir 2 piezas aleatorias de las 3 disponibles
       const opciones = shuffle([...PIEZAS[cat]]).slice(0, 2);
       
       const row = document.createElement('div');
       row.className = 'categoria-row';
-      row.innerHTML = `<div class="categoria-titulo">${NOMBRES[cat]}</div>`;
+      row.innerHTML = `<div class="categoria-titulo">${NOMBRES_CAT[cat]}</div>`;
       
       const opcionesDiv = document.createElement('div');
       opcionesDiv.className = 'opciones';
 
-      opciones.forEach(pieza => {
+      opciones.forEach(piezaData => {
         const div = document.createElement('div');
         div.className = 'opcion';
-        // Intentar obtener un nombre legible de la pieza
-        const nombrePieza = pieza.name.replace(/([A-Z])/g, ' $1').trim().toUpperCase();
-        div.innerHTML = `<span>${nombrePieza}</span>`;
+        div.innerHTML = `<span>${piezaData.nombre}</span>`;
         
         div.onclick = () => {
-          // Jugador elige esta
           div.classList.add('elegida');
-          piezasJugador[cat] = pieza;
+          piezasJugador[cat] = piezaData.obj;
           
-          // La otra va para la CPU
-          const otraPieza = opciones.find(p => p !== pieza);
-          const otraDiv = opcionesDiv.querySelectorAll('.opcion')[opciones.indexOf(otraPieza)];
+          const otraPiezaData = opciones.find(p => p !== piezaData);
+          const otraDiv = opcionesDiv.querySelectorAll('.opcion')[opciones.indexOf(otraPiezaData)];
           otraDiv.classList.add('cpu');
-          piezasCPU[cat] = otraPieza;
+          piezasCPU[cat] = otraPiezaData.obj;
 
           seleccionesHechas++;
           if (seleccionesHechas === 4) {
