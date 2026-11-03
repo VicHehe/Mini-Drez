@@ -1,15 +1,14 @@
-export function elegirMovimientoCPU(board, piezasCPU, piezasJugador, dificultad, validator) {
+export function elegirMovimientoCPU(board, piezasCPU, piezasJugador, dificultad, validator, getValidMovesWrapper) {
   const movimientos = [];
 
-  // CORRECCIÓN: Tablero de 5x8
   for (let x = 0; x < 5; x++) {
     for (let z = 0; z < 8; z++) {
       const pieza = board[x][z];
       if (pieza && pieza.color === 'b') { 
-        // CORRECCIÓN: Es pieza.def, no pieza.logic. Pasamos los estados.
-        let movs = pieza.def.getValidMoves(x, z, 2, board, pieza.hasMoved, pieza.isCharging);
+        // Usamos el wrapper para traducir coordenadas
+        let movs = getValidMovesWrapper(pieza.def, x, z, 2, board, pieza.hasMoved, pieza.isCharging);
         
-        // Filtrar movimientos inválidos (que dejan al rey en jaque)
+        // Filtrar movimientos que dejan al rey en jaque
         if (validator) {
           movs = movs.filter(m => validator(x, z, m.x, m.z, board, pieza, m.type === 'swap'));
         }
@@ -47,13 +46,13 @@ export function elegirMovimientoCPU(board, piezasCPU, piezasJugador, dificultad,
       }
     }
 
+    // Centro del tablero 5x8 es (2, 3.5)
     const centroX = 2;
     const centroZ = 3.5;
     const distActual = Math.abs(mov.fromX - centroX) + Math.abs(mov.fromZ - centroZ);
     const distNueva = Math.abs(mov.x - centroX) + Math.abs(mov.z - centroZ);
     puntuacion += (distActual - distNueva) * 0.5;
 
-    // Penalización por peligro (simplificada)
     let peligro = 0;
     for (let dx = -1; dx <= 1; dx++) {
       for (let dz = -1; dz <= 1; dz++) {
@@ -68,7 +67,6 @@ export function elegirMovimientoCPU(board, piezasCPU, piezasJugador, dificultad,
     }
     puntuacion -= peligro;
 
-    // CORRECCIÓN: Usar pieza.def.categoria
     if (mov.pieza.def.categoria === 'rey') {
       puntuacion += 10;
     }
