@@ -31,10 +31,9 @@ const PAL = {
 };
 
 /* ══════════════════════════════════════════════
-   RENDERER — baja resolución + escalado pixelado
+   RENDERER — Pixelado suave
    ══════════════════════════════════════════════ */
 const stage = document.getElementById('stage');
-// Aumentado a 0.65 para que las piezas se vean mucho más claras sin perder el estilo
 const PIXEL_SCALE = 0.65; 
 
 const renderer = new THREE.WebGLRenderer({
@@ -55,7 +54,7 @@ const camera = new THREE.PerspectiveCamera(38, 1, 0.1, 200);
 
 let theta  = 0.62;        
 const PHI  = 0.955;       
-let radius = 20.0;        
+let radius = 24.0; // Cámara un poco más alejada por el tablero alargado
 
 const target = new THREE.Vector3(0, -0.3, 0);
 
@@ -90,13 +89,13 @@ magentaLight.position.set(7, 1.8, 5.5);
 scene.add(magentaLight);
 
 /* ══════════════════════════════════════════════
-   TABLERO 8x5
+   TABLERO 5x8 (5 ancho, 8 largo)
    ══════════════════════════════════════════════ */
 const boardGroup = new THREE.Group();
 scene.add(boardGroup);
 
-const COLS = 8;
-const ROWS = 5;
+const COLS = 5; // Ancho
+const ROWS = 8; // Largo
 const TILE = 1;
 const GAP  = 0.06;
 const STEP = TILE + GAP;
@@ -172,7 +171,7 @@ const matHighlight = new THREE.MeshBasicMaterial({ color: PAL.highlight, transpa
 const matDanger = new THREE.MeshBasicMaterial({ color: PAL.danger, transparent: true, opacity: 0.6 });
 
 /* ══════════════════════════════════════════════
-   INICIALIZACIÓN
+   INICIALIZACIÓN (FORMACIÓN CORREGIDA)
    ══════════════════════════════════════════════ */
 iniciarSeleccion((datosSeleccion) => {
   config = datosSeleccion;
@@ -184,29 +183,31 @@ iniciarSeleccion((datosSeleccion) => {
     }
   }
 
-  // Formación Clásica Jugador 1 (Blancas - Abajo)
-  // 5 Peones al frente en Z=1
-  for (let x = 1; x <= 5; x++) {
+  // JUGADOR 1 (Blancas - Abajo en Z=0 y Z=1)
+  // Fila trasera (Z=0) perfectamente alineada con las 5 columnas
+  colocarPieza(0, 0, config.piezasJugador.defensa_lejana, 'w');  // Torre
+  colocarPieza(1, 0, config.piezasJugador.defensa_cercana, 'w'); // Alfil
+  colocarPieza(2, 0, config.piezasJugador.rey, 'w');             // Rey
+  colocarPieza(3, 0, config.piezasJugador.defensa_cercana, 'w'); // Alfil
+  colocarPieza(4, 0, config.piezasJugador.defensa_lejana, 'w');  // Torre
+  
+  // 5 Peones al frente (Z=1)
+  for (let x = 0; x < COLS; x++) {
     colocarPieza(x, 1, config.piezasJugador.peon, 'w');
   }
-  // Fila trasera en Z=0: Torre, Alfil, Rey, Alfil, Torre
-  colocarPieza(1, 0, config.piezasJugador.defensa_lejana, 'w');
-  colocarPieza(2, 0, config.piezasJugador.defensa_cercana, 'w');
-  colocarPieza(3, 0, config.piezasJugador.rey, 'w');
-  colocarPieza(4, 0, config.piezasJugador.defensa_cercana, 'w');
-  colocarPieza(5, 0, config.piezasJugador.defensa_lejana, 'w');
 
-  // Formación Clásica Jugador 2 (Negras - Arriba)
-  // 5 Peones al frente en Z=3
-  for (let x = 1; x <= 5; x++) {
-    colocarPieza(x, 3, config.piezasCPU.peon, 'b');
+  // JUGADOR 2 (Negras - Arriba en Z=7 y Z=6)
+  // Fila trasera (Z=7)
+  colocarPieza(0, 7, config.piezasCPU.defensa_lejana, 'b');
+  colocarPieza(1, 7, config.piezasCPU.defensa_cercana, 'b');
+  colocarPieza(2, 7, config.piezasCPU.rey, 'b');
+  colocarPieza(3, 7, config.piezasCPU.defensa_cercana, 'b');
+  colocarPieza(4, 7, config.piezasCPU.defensa_lejana, 'b');
+  
+  // 5 Peones al frente (Z=6)
+  for (let x = 0; x < COLS; x++) {
+    colocarPieza(x, 6, config.piezasCPU.peon, 'b');
   }
-  // Fila trasera en Z=4: Torre, Alfil, Rey, Alfil, Torre
-  colocarPieza(1, 4, config.piezasCPU.defensa_lejana, 'b');
-  colocarPieza(2, 4, config.piezasCPU.defensa_cercana, 'b');
-  colocarPieza(3, 4, config.piezasCPU.rey, 'b');
-  colocarPieza(4, 4, config.piezasCPU.defensa_cercana, 'b');
-  colocarPieza(5, 4, config.piezasCPU.defensa_lejana, 'b');
 
   turn = 1;
 });
@@ -451,7 +452,7 @@ function resize(){
   camera.aspect = w / h;
   camera.updateProjectionMatrix();
 
-  radius = camera.aspect >= 1 ? 20.0 : 20.0 + (1 - camera.aspect) * 12;
+  radius = camera.aspect >= 1 ? 24.0 : 24.0 + (1 - camera.aspect) * 15;
 }
 new ResizeObserver(resize).observe(stage);
 resize();
