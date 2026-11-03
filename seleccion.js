@@ -1,4 +1,3 @@
-// seleccion.js
 import { PeonClasico } from './piezas/PeonClasico.js';
 import { Bandido } from './piezas/Bandido.js';
 import { GuardiaGigante } from './piezas/GuardiaGigante.js';
@@ -54,7 +53,7 @@ export function iniciarSeleccion(onComplete) {
   style.textContent = `
     #overlay-seleccion {
       position: fixed; inset: 0; z-index: 100;
-      background: #050714; /* Fondo sólido para ocultar el tablero */
+      background: #050714;
       display: flex; flex-direction: column;
       align-items: center; justify-content: center;
       font-family: monospace; color: #c9d1ff;
@@ -134,7 +133,9 @@ export function iniciarSeleccion(onComplete) {
     modo = 'local';
     iniciarDraft();
   };
+  
   document.getElementById('btn-cpu').onclick = () => {
+    modo = 'cpu'; // CORRECCIÓN: Faltaba asignar el modo
     screenModo.classList.remove('active');
     screenDif.classList.add('active');
   };
