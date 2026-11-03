@@ -1,0 +1,65 @@
+*{ 
+  box-sizing: border-box; 
+}
+
+html, body{ 
+  height: 100%; 
+  margin: 0; 
+}
+
+body{
+  background: radial-gradient(130% 100% at 50% 0%, #1d2352 0%, #0c1029 52%, #050714 100%);
+  display: flex; 
+  align-items: center; 
+  justify-content: center;
+  overflow: hidden;
+}
+
+/* ---------- Escenario ---------- */
+#stage{
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  cursor: grab;
+  touch-action: none;
+}
+
+#stage canvas{
+  position: absolute; 
+  inset: 0;
+  width: 100%; 
+  height: 100%;
+  display: block;
+  image-rendering: pixelated;      /* Efecto pixel art */
+  image-rendering: crisp-edges;
+}
+
+/* Viñeta suave */
+#stage::before{
+  content: "";
+  position: absolute; 
+  inset: -2%;
+  pointer-events: none;
+  background: radial-gradient(ellipse at 50% 45%,
+              rgba(0,0,0,0) 42%,
+              rgba(4,5,18,.55) 78%,
+              rgba(3,4,14,.92) 100%);
+  z-index: 2;
+}
+
+/* Scanlines CRT muy leves */
+#stage::after{
+  content: "";
+  position: absolute; 
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(0,0,0,.18) 0px,
+    rgba(0,0,0,.18) 2px,
+    rgba(0,0,0,0)   2px,
+    rgba(0,0,0,0)   4px
+  );
+  opacity: .45;
+  z-index: 3;
+}
