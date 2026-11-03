@@ -2,7 +2,6 @@ import * as THREE from 'three';
 import { iniciarSeleccion } from './seleccion.js';
 import { elegirMovimientoCPU } from './cpu.js';
 
-// Importación de todas las piezas
 import { PeonClasico } from './piezas/PeonClasico.js';
 import { Bandido } from './piezas/Bandido.js';
 import { GuardiaGigante } from './piezas/GuardiaGigante.js';
@@ -32,7 +31,7 @@ const PAL = {
 };
 
 /* ══════════════════════════════════════════════
-   RENDERER — baja resolución + escalado pixelado
+   RENDERER
    ══════════════════════════════════════════════ */
 const stage = document.getElementById('stage');
 const PIXEL_SCALE = 0.30;
@@ -90,7 +89,7 @@ magentaLight.position.set(7, 1.8, 5.5);
 scene.add(magentaLight);
 
 /* ══════════════════════════════════════════════
-   TABLERO 8x5
+   TABLERO
    ══════════════════════════════════════════════ */
 const boardGroup = new THREE.Group();
 scene.add(boardGroup);
@@ -114,7 +113,7 @@ const matLight = new THREE.MeshStandardMaterial({
   color: PAL.tileLight, roughness: 0.55, metalness: 0.05
 });
 
-const gridTiles = []; // Para raycasting y posicionamiento
+const gridTiles = [];
 
 for (let x = 0; x < COLS; x++){
   for (let z = 0; z < ROWS; z++){
@@ -161,24 +160,22 @@ boardGroup.add(foot);
    ESTADO DEL JUEGO
    ══════════════════════════════════════════════ */
 let config = null;
-let board = []; // Matriz 8x5 de piezas
-let turn = 1; // 1 = Blanco (Jugador), 2 = Negro (Rival/CPU)
+let board = []; 
+let turn = 1; 
 let selectedPiece = null;
 let validMoves = [];
 let highlightMeshes = [];
 
-// Configuración visual de los highlights
 const highlightGeo = new THREE.BoxGeometry(TILE - 0.1, 0.02, TILE - 0.1);
 const matHighlight = new THREE.MeshBasicMaterial({ color: PAL.highlight, transparent: true, opacity: 0.6 });
 const matDanger = new THREE.MeshBasicMaterial({ color: PAL.danger, transparent: true, opacity: 0.6 });
 
 /* ══════════════════════════════════════════════
-   INICIALIZACIÓN DEL JUEGO
+   INICIALIZACIÓN
    ══════════════════════════════════════════════ */
 iniciarSeleccion((datosSeleccion) => {
   config = datosSeleccion;
   
-  // Crear matriz vacía
   for (let x = 0; x < COLS; x++) {
     board[x] = [];
     for (let z = 0; z < ROWS; z++) {
@@ -186,19 +183,19 @@ iniciarSeleccion((datosSeleccion) => {
     }
   }
 
-  // Colocar piezas iniciales (Jugador 1 - Blancas en Z=0,1)
+  // Piezas Jugador 1 (Blancas)
   colocarPieza(3, 0, config.piezasJugador.defensa_cercana, 'w');
   colocarPieza(4, 0, config.piezasJugador.rey, 'w');
   colocarPieza(5, 0, config.piezasJugador.defensa_lejana, 'w');
   colocarPieza(4, 1, config.piezasJugador.peon, 'w');
 
-  // Colocar piezas iniciales (Jugador 2 - Negras en Z=3,4)
+  // Piezas Jugador 2 (Negras)
   colocarPieza(3, 4, config.piezasCPU.defensa_cercana, 'b');
   colocarPieza(4, 4, config.piezasCPU.rey, 'b');
   colocarPieza(5, 4, config.piezasCPU.defensa_lejana, 'b');
   colocarPieza(4, 3, config.piezasCPU.peon, 'b');
 
-  turn = 1; // Empieza el jugador
+  turn = 1;
 });
 
 function colocarPieza(x, z, piezaDef, color) {
@@ -208,8 +205,7 @@ function colocarPieza(x, z, piezaDef, color) {
   const posX = (x - HALF_X) * STEP;
   const posZ = (z - HALF_Z) * STEP;
   
-  mesh.position.set(posX, 0, posZ); // Y=0 es la superficie del tablero
-  
+  mesh.position.set(posX, 0, posZ);
   boardGroup.add(mesh);
   
   board[x][z] = {
@@ -222,36 +218,30 @@ function colocarPieza(x, z, piezaDef, color) {
 }
 
 /* ══════════════════════════════════════════════
-   INTERACCIÓN (RAYCASTING)
+   INTERACCIÓN
    ══════════════════════════════════════════════ */
 const raycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2();
 
 stage.addEventListener('pointerdown', (e) => {
-  // Si es turno de la CPU, ignorar clics del jugador
   if (turn === 2 && config.modo === 'cpu') return;
 
-  // Calcular posición del ratón en NDC (-1 a 1)
   const rect = renderer.domElement.getBoundingClientRect();
   mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
   mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
 
   raycaster.setFromCamera(mouse, camera);
-  
-  // Intersección con los mosaicos del tablero
   const intersects = raycaster.intersectObjects(gridTiles);
   
   if (intersects.length > 0) {
     const tile = intersects[0].object;
-    const { gridX, gridZ } = tile.userData;
-    manejarClic(gridX, gridZ);
+    manejarClic(tile.userData.gridX, tile.userData.gridZ);
   }
 });
 
 function manejarClic(x, z) {
   const clickedPiece = board[x][z];
 
-  // Si ya hay una pieza seleccionada y hacemos clic en un movimiento válido
   if (selectedPiece) {
     const move = validMoves.find(m => m.x === x && m.z === z);
     if (move) {
@@ -260,12 +250,12 @@ function manejarClic(x, z) {
     }
   }
 
-  // Si hacemos clic en una pieza propia, la seleccionamos
   if (clickedPiece && clickedPiece.color === (turn === 1 ? 'w' : 'b')) {
-    // Si ya estaba seleccionada, la deseleccionamos (para el Guardia Gigante)
     if (selectedPiece && selectedPiece.x === x && selectedPiece.z === z) {
-      // El Guardia Gigante usa el clic sobre sí mismo para atacar
-      if (clickedPiece.def.categoria === 'peon' && clickedPiece.def.name === 'GuardiaGigante' && clickedPiece.isCharging) {
+      // HABILIDAD GUARDIA GIGANTE: Se compara el objeto def con la pieza elegida en la config
+      const piezaActual = turn === 1 ? config.piezasJugador.peon : config.piezasCPU.peon;
+      
+      if (clickedPiece.def === piezaActual && clickedPiece.isCharging) {
         const moves = clickedPiece.def.getValidMoves(x, z, turn, board, clickedPiece.isCharging);
         const areaAttack = moves.find(m => m.type === 'area_attack');
         if (areaAttack) {
@@ -283,14 +273,13 @@ function manejarClic(x, z) {
 }
 
 function seleccionar(x, z) {
-  deseleccionar(); // Limpiar selección previa
+  deseleccionar();
   const piece = board[x][z];
   if (!piece) return;
 
   selectedPiece = { x, z };
   validMoves = piece.def.getValidMoves(x, z, turn, board, piece.hasMoved, piece.isCharging);
 
-  // Crear Highlights visuales
   validMoves.forEach(m => {
     const hl = new THREE.Mesh(highlightGeo, m.capture || m.type === 'convert' || m.type === 'area_attack' ? matDanger : matHighlight);
     hl.position.set((m.x - HALF_X) * STEP, 0.01, (m.z - HALF_Z) * STEP);
@@ -315,45 +304,33 @@ function ejecutarMovimiento(fromX, fromZ, toX, toZ, move) {
   
   deseleccionar();
 
-  // 1. Manejar Intercambio (Rey Clásico)
   if (move.type === 'swap') {
     board[fromX][fromZ] = target;
     board[toX][toZ] = piece;
-    
-    // Actualizar posiciones visuales
     piece.mesh.position.set((toX - HALF_X) * STEP, 0, (toZ - HALF_Z) * STEP);
     target.mesh.position.set((fromX - HALF_X) * STEP, 0, (fromZ - HALF_Z) * STEP);
-    
     piece.hasMoved = true;
     target.hasMoved = true;
     finalizarTurno();
     return;
   }
 
-  // 2. Manejar Ataque en Área (Guardia Gigante)
   if (move.type === 'area_attack') {
     move.targets.forEach(t => {
       const victim = board[t.x][t.z];
-      if (victim) {
-        // Si es inmortal, no muere
-        if (!victim.def.isImmortal) {
-          boardGroup.remove(victim.mesh);
-          board[t.x][t.z] = null;
-        }
+      if (victim && !victim.def.isImmortal) {
+        boardGroup.remove(victim.mesh);
+        board[t.x][t.z] = null;
       }
     });
-    piece.hasMoved = false; // Permanece quieto, pero su estado de carga cambia
+    piece.hasMoved = false;
     piece.isCharging = false;
     finalizarTurno();
     return;
   }
 
-  // 3. Manejar Conversión (Emperador Invocador)
   if (move.type === 'convert') {
-    // Eliminar enemigo
     boardGroup.remove(target.mesh);
-    
-    // Crear el nuevo peón del jugador actual
     const nuevoPeon = turn === 1 ? config.piezasJugador.peon : config.piezasCPU.peon;
     const colorHex = turn === 1 ? PAL.white : PAL.black;
     const nuevoMesh = nuevoPeon.createMesh(colorHex);
@@ -369,33 +346,24 @@ function ejecutarMovimiento(fromX, fromZ, toX, toZ, move) {
       isCharging: false
     };
     
-    // Mover al Emperador a la casilla
     board[fromX][fromZ] = null;
     board[toX][toZ] = piece;
     piece.mesh.position.set((toX - HALF_X) * STEP, 0, (toZ - HALF_Z) * STEP);
     piece.hasMoved = true;
-    
     finalizarTurno();
     return;
   }
 
-  // 4. Movimiento o Captura Normal
   if (target) {
-    // Si la pieza objetivo es inmortal, no se puede capturar (el movimiento es inválido)
-    if (target.def.isImmortal) {
-      return; 
-    }
+    if (target.def.isImmortal) return; 
 
-    // Verificar si explota (Bombardero)
     if (target.def.getExplosionArea) {
       const area = target.def.getExplosionArea(toX, toZ);
       area.forEach(a => {
         const v = board[a.x][a.z];
-        if (v) {
-          if (!v.def.isImmortal) {
-            boardGroup.remove(v.mesh);
-            board[a.x][a.z] = null;
-          }
+        if (v && !v.def.isImmortal) {
+          boardGroup.remove(v.mesh);
+          board[a.x][a.z] = null;
         }
       });
     } else {
@@ -403,12 +371,10 @@ function ejecutarMovimiento(fromX, fromZ, toX, toZ, move) {
     }
   }
 
-  // Mover pieza
   board[fromX][fromZ] = null;
   board[toX][toZ] = piece;
   piece.mesh.position.set((toX - HALF_X) * STEP, 0, (toZ - HALF_Z) * STEP);
   
-  // Actualizar estados
   piece.hasMoved = true;
   piece.isCharging = false; 
 
@@ -416,26 +382,21 @@ function ejecutarMovimiento(fromX, fromZ, toX, toZ, move) {
 }
 
 /* ══════════════════════════════════════════════
-   CONTROL DE TURNOS Y CPU
+   TURNOS
    ══════════════════════════════════════════════ */
 function finalizarTurno() {
-  // Cambiar estado de carga (Guardia Gigante) a todas las piezas del jugador actual
   for (let x = 0; x < COLS; x++) {
     for (let z = 0; z < ROWS; z++) {
       const p = board[x][z];
       if (p && p.color === (turn === 1 ? 'w' : 'b')) {
-        if (!p.hasMoved) {
-          p.isCharging = true; // Si no se movió, se carga para el próximo turno
-        } else {
-          p.isCharging = false;
-        }
+        if (!p.hasMoved) p.isCharging = true;
+        else p.isCharging = false;
       }
     }
   }
 
   turn = turn === 1 ? 2 : 1;
 
-  // Comprobar si alguien perdió su Rey
   let reyW = false, reyB = false;
   for (let x = 0; x < COLS; x++) {
     for (let z = 0; z < ROWS; z++) {
@@ -447,74 +408,56 @@ function finalizarTurno() {
     }
   }
 
-  if (!reyW) { alert("¡Gana el Jugador 2 (Negras)!"); location.reload(); return; }
-  if (!reyB) { alert("¡Gana el Jugador 1 (Blancas)!"); location.reload(); return; }
+  if (!reyW) { alert("¡Gana el Jugador 2!"); location.reload(); return; }
+  if (!reyB) { alert("¡Gana el Jugador 1!"); location.reload(); return; }
 
-  // Turno de la CPU
   if (turn === 2 && config.modo === 'cpu') {
-    setTimeout(turnoCPU, 600); // Pequeño delay para que parezca natural
+    setTimeout(turnoCPU, 600);
   }
 }
 
 function turnoCPU() {
   const mov = elegirMovimientoCPU(board, config.piezasCPU, config.piezasJugador, config.dificultad);
-  
   if (mov) {
-    // Ejecutar el movimiento de la CPU
-    // Nota: El motor de CPU devuelve {x, z, fromX, fromZ, ...moveData}
     ejecutarMovimiento(mov.fromX, mov.fromZ, mov.x, mov.z, mov);
   } else {
-    // Si no hay movimientos, pierde el turno
     finalizarTurno();
   }
 }
 
 /* ══════════════════════════════════════════════
-   RESIZE Y RENDER LOOP
+   RESIZE Y LOOP
    ══════════════════════════════════════════════ */
 function resize(){
   const w = stage.clientWidth  || 1;
   const h = stage.clientHeight || 1;
 
-  renderer.setSize(
-    Math.max(1, Math.round(w * PIXEL_SCALE)),
-    Math.max(1, Math.round(h * PIXEL_SCALE)),
-    false
-  );
+  renderer.setSize(Math.max(1, Math.round(w * PIXEL_SCALE)), Math.max(1, Math.round(h * PIXEL_SCALE)), false);
   renderer.domElement.style.width  = '100%';
   renderer.domElement.style.height = '100%';
 
   camera.aspect = w / h;
   camera.updateProjectionMatrix();
 
-  radius = camera.aspect >= 1
-    ? 20.0
-    : 20.0 + (1 - camera.aspect) * 12;
+  radius = camera.aspect >= 1 ? 20.0 : 20.0 + (1 - camera.aspect) * 12;
 }
 new ResizeObserver(resize).observe(stage);
 resize();
 
-let dragging = false, lastX = 0, hasDragged = false;
-
+let dragging = false, lastX = 0;
 stage.addEventListener('pointerdown', e => {
   dragging = true;
-  hasDragged = false;
   lastX = e.clientX;
   stage.style.cursor = 'grabbing';
   stage.setPointerCapture(e.pointerId);
 });
-
 stage.addEventListener('pointermove', e => {
   if (!dragging) return;
   const dx = e.clientX - lastX;
   lastX = e.clientX;
-
-  if (Math.abs(dx) > 3) hasDragged = true;
-
   theta -= dx * 0.0060;
 });
-
-function endDrag(e){
+function endDrag(){
   dragging = false;
   stage.style.cursor = 'grab';
 }
