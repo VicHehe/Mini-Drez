@@ -31,10 +31,11 @@ const PAL = {
 };
 
 /* ══════════════════════════════════════════════
-   RENDERER
+   RENDERER — baja resolución + escalado pixelado
    ══════════════════════════════════════════════ */
 const stage = document.getElementById('stage');
-const PIXEL_SCALE = 0.30;
+// Aumentado a 0.65 para que las piezas se vean mucho más claras sin perder el estilo
+const PIXEL_SCALE = 0.65; 
 
 const renderer = new THREE.WebGLRenderer({
   antialias: false,
@@ -89,7 +90,7 @@ magentaLight.position.set(7, 1.8, 5.5);
 scene.add(magentaLight);
 
 /* ══════════════════════════════════════════════
-   TABLERO
+   TABLERO 8x5
    ══════════════════════════════════════════════ */
 const boardGroup = new THREE.Group();
 scene.add(boardGroup);
@@ -183,17 +184,29 @@ iniciarSeleccion((datosSeleccion) => {
     }
   }
 
-  // Piezas Jugador 1 (Blancas)
-  colocarPieza(3, 0, config.piezasJugador.defensa_cercana, 'w');
-  colocarPieza(4, 0, config.piezasJugador.rey, 'w');
+  // Formación Clásica Jugador 1 (Blancas - Abajo)
+  // 5 Peones al frente en Z=1
+  for (let x = 1; x <= 5; x++) {
+    colocarPieza(x, 1, config.piezasJugador.peon, 'w');
+  }
+  // Fila trasera en Z=0: Torre, Alfil, Rey, Alfil, Torre
+  colocarPieza(1, 0, config.piezasJugador.defensa_lejana, 'w');
+  colocarPieza(2, 0, config.piezasJugador.defensa_cercana, 'w');
+  colocarPieza(3, 0, config.piezasJugador.rey, 'w');
+  colocarPieza(4, 0, config.piezasJugador.defensa_cercana, 'w');
   colocarPieza(5, 0, config.piezasJugador.defensa_lejana, 'w');
-  colocarPieza(4, 1, config.piezasJugador.peon, 'w');
 
-  // Piezas Jugador 2 (Negras)
-  colocarPieza(3, 4, config.piezasCPU.defensa_cercana, 'b');
-  colocarPieza(4, 4, config.piezasCPU.rey, 'b');
+  // Formación Clásica Jugador 2 (Negras - Arriba)
+  // 5 Peones al frente en Z=3
+  for (let x = 1; x <= 5; x++) {
+    colocarPieza(x, 3, config.piezasCPU.peon, 'b');
+  }
+  // Fila trasera en Z=4: Torre, Alfil, Rey, Alfil, Torre
+  colocarPieza(1, 4, config.piezasCPU.defensa_lejana, 'b');
+  colocarPieza(2, 4, config.piezasCPU.defensa_cercana, 'b');
+  colocarPieza(3, 4, config.piezasCPU.rey, 'b');
+  colocarPieza(4, 4, config.piezasCPU.defensa_cercana, 'b');
   colocarPieza(5, 4, config.piezasCPU.defensa_lejana, 'b');
-  colocarPieza(4, 3, config.piezasCPU.peon, 'b');
 
   turn = 1;
 });
@@ -252,7 +265,6 @@ function manejarClic(x, z) {
 
   if (clickedPiece && clickedPiece.color === (turn === 1 ? 'w' : 'b')) {
     if (selectedPiece && selectedPiece.x === x && selectedPiece.z === z) {
-      // HABILIDAD GUARDIA GIGANTE: Se compara el objeto def con la pieza elegida en la config
       const piezaActual = turn === 1 ? config.piezasJugador.peon : config.piezasCPU.peon;
       
       if (clickedPiece.def === piezaActual && clickedPiece.isCharging) {
