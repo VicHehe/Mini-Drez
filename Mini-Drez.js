@@ -33,11 +33,10 @@ stage.appendChild(renderer.domElement);
 const scene  = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(38, 1, 0.1, 200);
 
-let theta  = 0.62;        // Giro horizontal permitido
+let theta  = 0.62;        
 const PHI  = 0.955;       // Inclinación FIJA 2.5D
-let radius = 16.5;        // Distancia para que el tablero no se corte
+let radius = 20.0;        // Cámara alejada para encuadrar el tablero 5x8
 
-// Ajustamos el objetivo un poco hacia abajo para centrar la peana y el pie
 const target = new THREE.Vector3(0, -0.3, 0);
 
 function updateCamera(){
@@ -71,17 +70,21 @@ magentaLight.position.set(7, 1.8, 5.5);
 scene.add(magentaLight);
 
 /* ══════════════════════════════════════════════
-   TABLERO 5 × 5
+   TABLERO 5x8 (8 columnas X, 5 filas Z)
    ══════════════════════════════════════════════ */
 const board = new THREE.Group();
 scene.add(board);
 
-const N = 5;
+const COLS = 8;  // Eje X
+const ROWS = 5;  // Eje Z
 const TILE = 1;
 const GAP  = 0.06;
 const STEP = TILE + GAP;
-const HALF = (N - 1) / 2;
 const TILE_H = 0.26;
+
+// Centrado del tablero
+const HALF_X = (COLS - 1) / 2;
+const HALF_Z = (ROWS - 1) / 2;
 
 const tileGeo = new THREE.BoxGeometry(TILE, TILE_H, TILE);
 
@@ -92,24 +95,34 @@ const matLight = new THREE.MeshStandardMaterial({
   color: PAL.tileLight, roughness: 0.55, metalness: 0.05
 });
 
-for (let x = 0; x < N; x++){
-  for (let z = 0; z < N; z++){
+// Array para guardar referencia de las casillas a futuro (útil para las piezas)
+const gridTiles = [];
+
+for (let x = 0; x < COLS; x++){
+  for (let z = 0; z < ROWS; z++){
     const isDark = (x + z) % 2 === 1;
     const tile = new THREE.Mesh(tileGeo, isDark ? matDark : matLight);
-    tile.position.set(
-      (x - HALF) * STEP,
-      -TILE_H / 2,
-      (z - HALF) * STEP
-    );
+    
+    // Posición exacta en el mundo 3D
+    const posX = (x - HALF_X) * STEP;
+    const posZ = (z - HALF_Z) * STEP;
+    
+    tile.position.set(posX, -TILE_H / 2, posZ);
+    
+    // Guardamos los datos por si los necesitas para la lógica de las piezas
+    tile.userData = { gridX: x, gridZ: z, isDark: isDark };
+    gridTiles.push(tile);
+    
     board.add(tile);
   }
 }
 
-/* ---------- Peana ---------- */
-const boardSize = N * STEP + 0.60;
+/* ---------- Peana Rectangular ---------- */
+const boardSizeX = COLS * STEP + 0.60;
+const boardSizeZ = ROWS * STEP + 0.60;
 const baseH     = 0.54;
 
-const baseGeo = new THREE.BoxGeometry(boardSize, baseH, boardSize);
+const baseGeo = new THREE.BoxGeometry(boardSizeX, baseH, boardSizeZ);
 const base = new THREE.Mesh(baseGeo, new THREE.MeshStandardMaterial({
   color: PAL.base, roughness: 0.85, metalness: 0.30
 }));
@@ -127,7 +140,7 @@ edges.position.copy(base.position);
 board.add(edges);
 
 /* Pie dorado inferior */
-const footGeo = new THREE.BoxGeometry(boardSize - 0.85, 0.10, boardSize - 0.85);
+const footGeo = new THREE.BoxGeometry(boardSizeX - 0.85, 0.10, boardSizeZ - 0.85);
 const foot = new THREE.Mesh(footGeo, new THREE.MeshStandardMaterial({
   color: PAL.gold, roughness: 0.35, metalness: 0.75
 }));
@@ -152,9 +165,10 @@ function resize(){
   camera.aspect = w / h;
   camera.updateProjectionMatrix();
 
+  // Ajuste dinámico para pantallas más cuadradas o verticales
   radius = camera.aspect >= 1
-    ? 16.5
-    : 16.5 + (1 - camera.aspect) * 10;
+    ? 20.0
+    : 20.0 + (1 - camera.aspect) * 12;
 }
 new ResizeObserver(resize).observe(stage);
 resize();
@@ -176,7 +190,6 @@ stage.addEventListener('pointermove', e => {
   const dx = e.clientX - lastX;
   lastX = e.clientX;
 
-  // Únicamente giro izquierda / derecha
   theta -= dx * 0.0060;
 });
 
