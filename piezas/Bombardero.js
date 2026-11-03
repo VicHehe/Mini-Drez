@@ -2,9 +2,9 @@ import * as THREE from 'three';
 
 export const Bombardero = {
   // ══════════════════════════════════════════════
-  // CATEGORÍA
+  // CATEGORÍA CORREGIDA
   // ══════════════════════════════════════════════
-  categoria: 'peon',
+  categoria: 'defensa_cercana', // Ya no es 'peon'
 
   // ══════════════════════════════════════════════
   // DISEÑO 3D (Low-poly, peligroso)
@@ -113,8 +113,6 @@ export const Bombardero = {
   // ══════════════════════════════════════════════
   // HABILIDAD DE MUERTE (EXPLOSIÓN)
   // ══════════════════════════════════════════════
-  // Esta función devuelve las coordenadas de las casillas afectadas
-  // cuando el Bombardero muere.
   getExplosionArea: (x, z) => {
     const targets = [];
     
@@ -131,7 +129,6 @@ export const Bombardero = {
       const tx = x + dir.dx;
       const tz = z + dir.dz;
       
-      // Verificar que estén dentro del tablero 8x5
       if (tx >= 0 && tx < 8 && tz >= 0 && tz < 5) {
         targets.push({ x: tx, z: tz });
       }
